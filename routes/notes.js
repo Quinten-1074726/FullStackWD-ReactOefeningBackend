@@ -13,22 +13,29 @@ router.get("/", async (req, res) => {
 
 router.post("/seed", async (req, res) => {
   try {
-    const fakeNotes = [];
+    const amountRaw = req.body.amount ?? req.query.amount;
+    const amount = Math.max(1, Math.min(200, Number(amountRaw) || 10)); 
 
-    for (let i = 0; i < 10; i++) {
-      fakeNotes.push({
-        title: faker.lorem.sentence(3),
-        body: faker.lorem.paragraph(),
-        author: faker.person.firstName(),
-        favorite: faker.datatype.boolean(),
-      });
+    const resetRaw = req.body.reset ?? req.query.reset;
+    const reset = resetRaw === true || resetRaw === "true"; 
+
+    if (reset) {
+      await Note.deleteMany({});
     }
 
-    const insertedNotes = await Note.insertMany(fakeNotes);
+    const fakeNotes = Array.from({ length: amount }, () => ({
+      title: faker.lorem.sentence(3),
+      body: faker.lorem.paragraph(),
+      author: faker.person.firstName(),
+      favorite: faker.datatype.boolean(),
+    }));
+
+    const inserted = await Note.insertMany(fakeNotes);
 
     res.status(201).json({
       message: "Database seeded",
-      count: insertedNotes.length,
+      reset,
+      count: inserted.length,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
