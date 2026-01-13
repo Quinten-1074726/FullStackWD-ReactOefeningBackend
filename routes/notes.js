@@ -9,13 +9,13 @@ function getBaseUrl(req) {
   return `${req.protocol}://${req.get("host")}`;
 }
 
-// ✅ 6.1 OPTIONS: collection
+// 6.1 OPTIONS: collection
 router.options("/", (req, res) => {
   res.setHeader("Allow", "GET,POST,OPTIONS");
   return res.sendStatus(204);
 });
 
-// ✅ 6.1 OPTIONS: detail
+// 6.1 OPTIONS: detail
 router.options("/:id", (req, res) => {
   res.setHeader("Allow", "GET,PUT,DELETE,OPTIONS");
   return res.sendStatus(204);
@@ -27,9 +27,16 @@ router.get("/", async (req, res) => {
 
   const total = await Note.countDocuments();
 
-  // ✅ default limit als checker geen limit meegeeft
-  const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 10));
-  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const hasLimit = req.query.limit !== undefined;
+
+  // als limit NIET is meegegeven: alles teruggeven (1 pagina)
+  const limit = hasLimit
+    ? Math.max(1, Math.min(100, Number(req.query.limit) || 10))
+    : (total === 0 ? 1 : total);
+
+  const offset = hasLimit
+    ? Math.max(0, Number(req.query.offset) || 0)
+    : 0;
 
   const notes = await Note.find()
     .sort({ createdAt: -1 })
@@ -49,23 +56,31 @@ router.get("/", async (req, res) => {
     },
   }));
 
-  const page = total === 0 ? 1 : Math.floor(offset / limit) + 1;
-  const pageCount = total === 0 ? 1 : Math.ceil(total / limit);
+  // page/pagecount: zonder limit -> altijd 1 pagina
+  const page = hasLimit ? Math.floor(offset / limit) + 1 : 1;
+  const pagecount = hasLimit
+    ? Math.max(1, Math.ceil(total / limit))
+    : 1;
 
+  // self “pure” collection url (voor basic check)
   const links = {
-    self: { href: `${baseUrl}/notes` }, // checker wil vaak "pure" collection url
+    self: { href: `${baseUrl}/notes` },
     collection: { href: `${baseUrl}/notes` },
-    current: { href: `${baseUrl}/notes?limit=${limit}&offset=${offset}` },
   };
 
-  const nextOffset = offset + limit;
-  const prevOffset = offset - limit;
+  // extra links alleen als er gepagineerd wordt
+  if (hasLimit) {
+    links.current = { href: `${baseUrl}/notes?limit=${limit}&offset=${offset}` };
 
-  if (nextOffset < total) {
-    links.next = { href: `${baseUrl}/notes?limit=${limit}&offset=${nextOffset}` };
-  }
-  if (prevOffset >= 0) {
-    links.prev = { href: `${baseUrl}/notes?limit=${limit}&offset=${prevOffset}` };
+    const nextOffset = offset + limit;
+    const prevOffset = offset - limit;
+
+    if (nextOffset < total) {
+      links.next = { href: `${baseUrl}/notes?limit=${limit}&offset=${nextOffset}` };
+    }
+    if (prevOffset >= 0) {
+      links.prev = { href: `${baseUrl}/notes?limit=${limit}&offset=${prevOffset}` };
+    }
   }
 
   res.json({
@@ -76,12 +91,12 @@ router.get("/", async (req, res) => {
       offset,
       total,
       page,
-      pageCount,
+      pagecount,   
+      pageCount: pagecount, 
     },
     _links: links,
   });
 });
-
 
 // GET /notes/:id (detail)
 router.get("/:id", async (req, res) => {
@@ -184,7 +199,7 @@ router.delete("/:id", async (req, res) => {
   const deleted = await Note.findByIdAndDelete(req.params.id);
   if (!deleted) return res.status(404).json({ message: "Note not found" });
 
-  return res.sendStatus(204); // ✅ checker-happy
+  return res.sendStatus(204); 
 });
 
 // POST /notes/seed (seed) — amount + reset

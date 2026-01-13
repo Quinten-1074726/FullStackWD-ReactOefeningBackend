@@ -7,16 +7,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 6.1 Accept: application/json afdwingen (OPTIONS altijd doorlaten)
+// 6.1 Accept: application/json afdwingenOPTIONS  doorlaten
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") return next();
 
   const accept = req.headers.accept;
 
-  // geen Accept header → laat toe
+  // geen Accept header laat toe
   if (!accept) return next();
 
-  // accepteert json of alles → ok
+  // accepteert json of alles ok
   if (accept.includes("application/json") || accept.includes("*/*")) return next();
 
   return res.status(406).json({
