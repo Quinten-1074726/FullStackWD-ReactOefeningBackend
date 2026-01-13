@@ -20,20 +20,9 @@ app.use((req, res, next) => {
   if (accept.includes("application/json") || accept.includes("*/*")) return next();
 
   return res.status(406).json({
-    message: "Only application/json responses are supported. Send Accept: application/json",
+    message:
+      "Only application/json responses are supported. Send Accept: application/json",
   });
-});
-
-// 6.1 OPTIONS implementeren (204 No Content + Allow header)
-app.use((req, res, next) => {
-  if (req.method !== "OPTIONS") return next();
-
-  res.setHeader("Allow", "GET,POST,PUT,DELETE,OPTIONS");
-  return res.sendStatus(204);
-});
-
-app.get("/", (req, res) => {
-  res.json({ message: "Hello World!" });
 });
 
 app.use("/notes", notesRouter);
