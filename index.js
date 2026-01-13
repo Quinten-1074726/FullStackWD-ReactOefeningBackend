@@ -1,50 +1,24 @@
 import express from "express";
+import mongoose from "mongoose";
+import notesRouter from "./routes/notes.js";
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello World!" });
 });
 
-app.get("/notes", (req, res) => {
-  res.json({
-    items: notes,
-    count: notes.length,
-  });
+// route for notes
+app.use("/notes", notesRouter);
+
+const PORT = process.env.EXPRESS_PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
+
+await mongoose.connect(MONGO_URI);
+console.log("Connected to MongoDB");
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is listening on port ${PORT}`);
 });
-
-app.get("/notes/:id", (req, res) => {
-  const noteId = req.params.id;
-
-  const note = notes.find((n) => n.id === noteId);
-
-  if (!note) {
-    return res.status(404).json({
-      message: "Note not found",
-    });
-  }
-
-  res.json(note);
-});
-
-
-app.listen(process.env.EXPRESS_PORT, () => {
-  console.log(`Server is listening on port ${process.env.EXPRESS_PORT}`);
-});
-
-const notes = [
-  {
-    id: "1",
-    title: "Eerste note",
-    body: "1e note ouwe",
-    author: "Quinten",
-    favorite: false,
-  },
-  {
-    id: "2",
-    title: "Tweede note",
-    body: "Nog een note",
-    author: "Quinten",
-    favorite: true,
-  },
-];
