@@ -5,6 +5,28 @@ import notesRouter from "./routes/notes.js";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  // CORS headers
+  if (req.method === "OPTIONS") return next();
+
+  const accept = req.headers.accept;
+
+  // Geen accept = OK
+  if (!accept) return next();
+
+  // accept header aanwezig
+  if (accept.includes("application/json") || accept.includes("*/*")) return next();
+
+  return res.status(406).json({
+    message: "Only application/json responses are supported. Send Accept: application/json",
+  });
+});
+
+app.use((req, res, next) => {
+  if (req.method !== "OPTIONS") return next();
+  res.setHeader("Allow", "GET,POST,PUT,DELETE,OPTIONS");
+  return res.sendStatus(204);
+});
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello World!" });
